@@ -1,0 +1,190 @@
+
+Space X Falcon 9 First Stage Landing Prediction
+Machine Learning Prediction
+Objectives
+Performing exploratory Data Analysis and determine Training Labels
+
+create a column for the class
+Standardize the data
+Split into training data and test data -Find best Hyperparameter for SVM, Classification Trees and Logistic Regression
+Find the method performs best using test data
+Libraries and Auxiliary Functions
+# Pandas is a software library written for the Python programming language for data manipulation and analysis.
+import pandas as pd
+# NumPy is a library for the Python programming language, adding support for large, multi-dimensional arrays and matrices, along with a large collection of high-level mathematical functions to operate on these arrays
+import numpy as np
+# Matplotlib is a plotting library for python and pyplot gives us a MatLab like plotting framework. We will use this in our plotter function to plot data.
+import matplotlib.pyplot as plt
+#Seaborn is a Python data visualization library based on matplotlib. It provides a high-level interface for drawing attractive and informative statistical graphics
+import seaborn as sns
+# Preprocessing allows us to standarsize our data
+from sklearn import preprocessing
+# Allows us to split our data into training and testing data
+from sklearn.model_selection import train_test_split
+# Allows us to test parameters of classification algorithms and find the best one
+from sklearn.model_selection import GridSearchCV
+# Logistic Regression classification algorithm
+from sklearn.linear_model import LogisticRegression
+# Support Vector Machine classification algorithm
+from sklearn.svm import SVC
+# Decision Tree classification algorithm
+from sklearn.tree import DecisionTreeClassifier
+# K Nearest Neighbors classification algorithm
+from sklearn.neighbors import KNeighborsClassifier
+This function is to plot the confusion matrix.
+
+def plot_confusion_matrix(y,y_predict):
+    "this function plots the confusion matrix"
+    from sklearn.metrics import confusion_matrix
+
+    cm = confusion_matrix(y, y_predict)
+    ax= plt.subplot()
+    sns.heatmap(cm, annot=True, ax = ax); #annot=True to annotate cells
+    ax.set_xlabel('Predicted labels')
+    ax.set_ylabel('True labels')
+    ax.set_title('Confusion Matrix'); 
+    ax.xaxis.set_ticklabels(['did not land', 'land']); ax.yaxis.set_ticklabels(['did not land', 'landed'])
+Load the dataframe
+data = pd.read_csv("dataset_part_2.csv")
+data.head()
+FlightNumber	Date	BoosterVersion	PayloadMass	Orbit	LaunchSite	Outcome	Flights	GridFins	Reused	Legs	LandingPad	Block	ReusedCount	Serial	Longitude	Latitude	Class
+0	1	2010/06/04	Falcon 9	6104.959412	LEO	CCAFS SLC 40	None None	1	False	False	False	NaN	1	0	B0003	-80.577366	28.561857	0
+1	2	2012/05/22	Falcon 9	525.000000	LEO	CCAFS SLC 40	None None	1	False	False	False	NaN	1	0	B0005	-80.577366	28.561857	0
+2	3	2013/03/01	Falcon 9	677.000000	ISS	CCAFS SLC 40	None None	1	False	False	False	NaN	1	0	B0007	-80.577366	28.561857	0
+3	4	2013/09/29	Falcon 9	500.000000	PO	VAFB SLC 4E	False Ocean	1	False	False	False	NaN	1	0	B1003	-120.610829	34.632093	0
+4	5	2013/12/03	Falcon 9	3170.000000	GTO	CCAFS SLC 40	None None	1	False	False	False	NaN	1	0	B1004	-80.577366	28.561857	0
+X = pd.read_csv('dataset_part_3.csv')
+X.head(100)
+Orbit	LaunchSite	LandingPad	Serial
+0	1	0	1	0
+1	1	0	1	1
+2	1	0	1	1
+3	1	1	1	1
+4	1	0	1	1
+...	...	...	...	...
+85	1	1	1	1
+86	1	1	1	1
+87	1	1	1	1
+88	1	0	1	1
+89	1	0	1	1
+90 rows × 4 columns
+
+Create a NumPy array from the column Class in data, by applying the method to_numpy() then assign it to the variable Y,make sure the output is a Pandas series (only one bracket df['name of column']).
+
+y = data['Class'].to_numpy() 
+Standardize the data in X then reassign it to the variable X
+
+transform = preprocessing.StandardScaler()
+X = transform.fit_transform(X)
+We split the data into training and testing data using the function train_test_split. The training data is divided into validation data, a second set used for training data; then the models are trained and hyperparameters are selected using the function GridSearchCV.
+
+Spliting the data into training and test data
+Using the function train_test_split to split the data X and Y into training and test data. Setting the parameter test_size to 0.2 and random_state to 2. The training data and test data should be assigned to the following labels.
+
+X_train, X_test, Y_train, Y_test
+
+X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.2, random_state=2)
+we can see we only have 18 test samples.
+
+Y_test.shape
+(18,)
+Creating a logistic regression object using then create a GridSearchCV object logreg_cv with cv = 10. Fit the object to find the best parameters from the dictionary parameters.
+parameters ={"C":[0.01,0.1,1],'penalty':['l2'], 'solver':['lbfgs']} # l1 lasso l2 ridge
+lr=LogisticRegression()
+gscv = GridSearchCV(lr,parameters,scoring='accuracy',cv=10)
+logreg_cv = gscv.fit(X_train,Y_train)
+We output the GridSearchCV object for logistic regression. We display the best parameters using the data attribute best_params\_ and the accuracy on the validation data using the data attribute best_score\_.
+
+print("tuned hpyerparameters :(best parameters) ",logreg_cv.best_params_)
+print("accuracy :",logreg_cv.best_score_)
+tuned hpyerparameters :(best parameters)  {'C': 0.01, 'penalty': 'l2', 'solver': 'lbfgs'}
+accuracy : 0.6678571428571429
+Calculating the accuracy on the test data using the method score:
+
+print('Accuracy=  ',logreg_cv.score(X_test,Y_test))
+Accuracy=   0.6666666666666666
+Lets look at the confusion matrix:
+
+yhat=logreg_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+
+Examining the confusion matrix, we see that logistic regression can distinguish between the different classes. We see that the major problem is false positives.
+
+Creating a support vector machine object then creating a GridSearchCV object svm_cv with cv - 10. Fitting the object to find the best parameters from the dictionary parameters.
+parameters = {'kernel':('linear', 'rbf','poly','rbf', 'sigmoid'),
+              'C': np.logspace(-3, 3, 5),
+              'gamma':np.logspace(-3, 3, 5)}
+svm = SVC()
+gscv = GridSearchCV(svm,parameters,scoring='accuracy',cv=10)
+svm_cv = gscv.fit(X_train,Y_train)
+print("tuned hpyerparameters :(best parameters) ",svm_cv.best_params_)
+print("accuracy :",svm_cv.best_score_)
+tuned hpyerparameters :(best parameters)  {'C': 0.001, 'gamma': 0.001, 'kernel': 'linear'}
+accuracy : 0.6678571428571429
+Calculating the accuracy on the test data using the method score:
+
+print("accuracy: ",svm_cv.score(X_test,Y_test))
+accuracy:  0.6666666666666666
+We can plot the confusion matrix
+
+yhat=svm_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+
+Creating a decision tree classifier object then creating a GridSearchCV object tree_cv with cv = 10. Fitting the object to find the best parameters from the dictionary parameters.
+parameters = {'criterion': ['gini', 'entropy'],
+     'splitter': ['best', 'random'],
+     'max_depth': [2*n for n in range(1,10)],
+     'max_features': ['auto', 'sqrt'],
+     'min_samples_leaf': [1, 2, 4],
+     'min_samples_split': [2, 5, 10]}
+
+tree = DecisionTreeClassifier()
+gscv = GridSearchCV(tree,parameters,scoring='accuracy',cv=10)
+tree_cv = gscv.fit(X_train,Y_train)
+print("tuned hpyerparameters :(best parameters) ",tree_cv.best_params_)
+print("accuracy :",tree_cv.best_score_)
+tuned hpyerparameters :(best parameters)  {'criterion': 'gini', 'max_depth': 2, 'max_features': 'auto', 'min_samples_leaf': 1, 'min_samples_split': 2, 'splitter': 'best'}
+accuracy : 0.6678571428571429
+Calculating the accuracy of tree_cv on the test data using the method score:
+
+print("accuracy: ",tree_cv.score(X_test,Y_test))
+accuracy:  0.6666666666666666
+We can plot the confusion matrix
+
+yhat = svm_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+
+Creating a k nearest neighbors object then create a GridSearchCV object knn_cv with cv = 10. Fitting the object to find the best parameters from the dictionary parameters.
+
+parameters = {'n_neighbors': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+              'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],
+              'p': [1,2]}
+
+KNN = KNeighborsClassifier()
+gscv = GridSearchCV(KNN,parameters,scoring='accuracy',cv=10)
+knn_cv = gscv.fit(X_train,Y_train)
+print("tuned hpyerparameters :(best parameters) ",knn_cv.best_params_)
+print("accuracy :",knn_cv.best_score_)
+tuned hpyerparameters :(best parameters)  {'algorithm': 'brute', 'n_neighbors': 9, 'p': 1}
+accuracy : 0.6535714285714287
+Calculating the accuracy of tree_cv on the test data using the method score:
+
+print("accuracy: ",knn_cv.score(X_test,Y_test))
+accuracy:  0.6666666666666666
+We can plot the confusion matrix
+
+yhat = knn_cv.predict(X_test)
+plot_confusion_matrix(Y_test,yhat)
+
+Finding the best algorithm
+algorithms = {'KNN':knn_cv.best_score_,'Tree':tree_cv.best_score_,'LogisticRegression':logreg_cv.best_score_}
+bestalgorithm = max(algorithms, key=algorithms.get)
+print('Best Algorithm is',bestalgorithm,'with a score of',algorithms[bestalgorithm])
+if bestalgorithm == 'Tree':
+    print('Best Params is :',tree_cv.best_params_)
+if bestalgorithm == 'KNN':
+    print('Best Params is :',knn_cv.best_params_)
+if bestalgorithm == 'LogisticRegression':
+    print('Best Params is :',logreg_cv.best_params_)
+Best Algorithm is Tree with a score of 0.6678571428571429
+Best Params is : {'criterion': 'gini', 'max_depth': 2, 'max_features': 'auto', 'min_samples_leaf': 1, 'min_samples_split': 2, 'splitter': 'best'}
